@@ -296,5 +296,25 @@ class OpenSkyClient {
     return ms ? Math.round(ms * 1.94384) : null;
   }
 }
+async getRouteByCallsign(callsign) {
+  if (!callsign) return null;
 
+  const curlCmd = this.getCurlCmd();
+  const url = `https://api.adsbdb.com/v0/callsign/${callsign.trim()}`;
+  const cmd = `${curlCmd} -s "${url}"`;
+
+  try {
+    const result = execSync(cmd, { timeout: 10000, encoding: 'utf8', shell: true });
+    const route = JSON.parse(result)?.response?.flightroute;
+    if (route) {
+      return {
+        origin: route.origin?.iata_code || null,       // e.g. "DUB"
+        destination: route.destination?.iata_code || null, // e.g. "AMS"
+      };
+    }
+  } catch (e) {
+    // Route data is best-effort; silently ignore failures
+  }
+  return null;
+}
 module.exports = OpenSkyClient;
