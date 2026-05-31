@@ -271,24 +271,22 @@ class OpenSkyClient {
    * Enrich aircraft with metadata (type, etc.)
    * Only call this if FETCH_AIRCRAFT_METADATA=true
    */
-  async getRouteByCallsign(callsign) {
-  if (!callsign) return null;
+  async getRouteByIcao24(icao24) {
+  if (!icao24) return null;
 
-  const curlCmd = this.getCurlCmd();
-  const url = `https://api.adsbdb.com/v0/callsign/${callsign.trim()}`;
-  const cmd = `${curlCmd} -s "${url}"`;
+  const now = Math.floor(Date.now() / 1000);
+  const begin = now - 43200; // look back 12 hours to catch long-haul departures
 
-  try {
-    const result = execSync(cmd, { timeout: 10000, encoding: 'utf8', shell: true });
-    const route = JSON.parse(result)?.response?.flightroute;
-    if (route) {
-      return {
-        origin: route.origin?.iata_code || null,       // e.g. "DUB"
-        destination: route.destination?.iata_code || null, // e.g. "AMS"
-      };
-    }
-  } catch (e) {
-    // Route data is best-effort; silently ignore failures
+  const url = `${this.baseUrl}/flights/aircraft?icao24=${icao24}&begin=${begin}&end=${now}`;
+  const data = await this.curlGet(url);
+
+  if (Array.isArray(data) && data.length > 0) {
+    const flight = data[data.length - 1]; // most recent entry for this aircraft
+    return {
+      origin:      flight.estDepartureAirport || null,  // e.g. "EIDW"
+      destination: flight.estArrivalAirport   || null,  // e.g. "EHAM"
+      airline:     flight.callsign?.slice(0, 3) || null, // ICAO airline prefix
+    };
   }
   return null;
 }
