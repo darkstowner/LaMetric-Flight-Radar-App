@@ -97,15 +97,16 @@ class FlightMonitor {
         console.log(`   - ${callsign}${typeInfo}: ${altitude ? altitude.toLocaleString() + ' ft' : 'ground'}, ${distance.toFixed(1)} mi`);
 
         // Send notification to LaMetric
-        this.lametric.pushFlightNotification({
-          callsign,
-          altitude,
-          typecode,
-          distance,
-          // Route info would go here if we had it
-          // origin: null,
-          // destination: null,
-        });
+const route = await this.opensky.getRouteByCallsign(callsign);
+
+this.lametric.pushFlightNotification({
+  callsign,
+  altitude,
+  typecode,
+  distance,
+  origin: route?.origin || null,
+  destination: route?.destination || null,
+});
 
         this.markNotified(plane.icao24);
 
