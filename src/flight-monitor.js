@@ -106,6 +106,7 @@ this.lametric.pushFlightNotification({
   distance,
   origin: route?.origin || null,
   destination: route?.destination || null,
+  airline: route?.airline || null,        // ← add this
 });
 
         this.markNotified(plane.icao24);
