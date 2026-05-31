@@ -52,7 +52,7 @@ class LaMetricClient {
   /**
    * Push a simple notification
    */
-  pushNotification({ text, icon = '8879', sound = null, priority = 'info' }) {
+  pushNotification({ text, icon = '2933', sound = null, priority = 'info' }) {
     const payload = {
       priority,
       icon_type: 'none',
@@ -95,58 +95,55 @@ class LaMetricClient {
    * @param {string} [flight.destination] - Destination airport code
    * @param {number} [flight.distance] - Distance in miles
    */
-  pushFlightNotification(flight) {
-    const callsign = flight.callsign || 'Aircraft';
-    const altitudeFt = flight.altitude || 0;
+pushFlightNotification(flight) {
+  const callsign = flight.callsign || 'Aircraft';
+  const altitudeFt = flight.altitude || 0;
 
-    // Format altitude
-    let altText;
-    if (altitudeFt >= 10000) {
-      altText = `${(altitudeFt / 1000).toFixed(0)}k`;
-    } else if (altitudeFt > 0) {
-      altText = `${altitudeFt.toLocaleString()}`;
-    } else {
-      altText = 'Ground';
-    }
-
-    // Build one scrolling text string with bullet separators
-    const parts = [callsign];
-
-    if (flight.typecode) {
-      parts.push(flight.typecode);
-    }
-
-    if (flight.origin && flight.destination) {
-      parts.push(`${flight.origin}>${flight.destination}`);
-    }
-
-    parts.push(altText);
-
-    if (flight.distance) {
-      parts.push(`${flight.distance.toFixed(1)}mi`);
-    }
-
-    // Join with spaces
-    const scrollingText = parts.join('  ');
-
-    const payload = {
-      priority: 'info',
-      icon_type: 'none',
-      lifetime: 10000,  // Dismiss after 10 seconds and return to clock
-      model: {
-        cycles: 3,  // Show twice
-        frames: [
-          {
-            icon: '8879',  // airplane icon
-            text: scrollingText,
-          }
-        ],
-        sound: { category: 'notifications', id: 'notification' },
-      },
-    };
-
-    return this.pushRawNotification(payload);
+  let altText;
+  if (altitudeFt >= 10000) {
+    altText = `${(altitudeFt / 1000).toFixed(0)}k`;
+  } else if (altitudeFt > 0) {
+    altText = `${altitudeFt.toLocaleString()}ft`;
+  } else {
+    altText = 'Ground';
   }
+
+  const frames = [];
+
+  // Frame 1: Airline name (e.g. "Aer Lingus")
+  if (flight.airline) {
+    frames.push({ icon: '2933', text: flight.airline });
+  }
+
+  // Frame 2: Callsign + aircraft type (e.g. "EIN123 A320")
+  const callsignText = flight.typecode
+    ? `${callsign} ${flight.typecode}`
+    : callsign;
+  frames.push({ icon: '2933', text: callsignText });
+
+  // Frame 3: Route (e.g. "DUB > AMS")
+  if (flight.origin && flight.destination) {
+    frames.push({ icon: '2933', text: `${flight.origin} > ${flight.destination}` });
+  }
+
+  // Frame 4: Altitude + distance (e.g. "35k 2.3mi")
+  const detail = [altText];
+  if (flight.distance) detail.push(`${flight.distance.toFixed(1)}mi`);
+  frames.push({ icon: '2933', text: detail.join(' ') });
+
+  const payload = {
+    priority: 'info',
+    icon_type: 'none',
+    lifetime: 12000,
+    model: {
+      cycles: 2,
+      frames,
+      sound: { category: 'notifications', id: 'notification' },
+    },
+  };
+
+  return this.pushRawNotification(payload);
+}
 
   /**
    * Dismiss all notifications and return to clock
