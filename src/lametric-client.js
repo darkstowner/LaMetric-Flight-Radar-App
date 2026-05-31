@@ -123,7 +123,7 @@ pushFlightNotification(flight) {
 
   // Frame 3: Route (e.g. "DUB > AMS")
   if (flight.origin && flight.destination) {
-    frames.push({ icon: '2933', text: `${flight.origin} > ${flight.destination}` });
+    frames.push({ icon: '2933', text: `${flight.origin}>${flight.destination}` });
   }
 
   // Frame 4: Altitude + distance (e.g. "35k 2.3mi")
