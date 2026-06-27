@@ -101,9 +101,7 @@ const route = await this.opensky.getRouteByIcao24(plane.icao24);
 
 this.lametric.pushFlightNotification({
   callsign,
-  //altitude,
   typecode,
-  //distance,
   origin: route?.origin || null,
   destination: route?.destination || null,
   airline: route?.airline || null,        // ← add this
