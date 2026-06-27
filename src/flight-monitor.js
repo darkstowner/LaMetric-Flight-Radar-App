@@ -99,9 +99,9 @@ class FlightMonitor {
         // Send notification to LaMetric
         this.lametric.pushFlightNotification({
           callsign,
-          altitude,
+          //altitude,
           typecode,
-          distance,
+          //distance,
           // Route info would go here if we had it
           // origin: null,
           // destination: null,
