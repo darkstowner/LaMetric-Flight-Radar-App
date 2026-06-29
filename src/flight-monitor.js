@@ -96,7 +96,6 @@ class FlightMonitor {
         }
 
         const callsign = enriched.callsign || enriched.icao24;
-        const altitude = OpenSkyClient.metersToFeet(enriched.baroAltitude || enriched.geoAltitude);
         const typecode = enriched.typecode || null;
         const distance = plane.distanceMiles;
 
