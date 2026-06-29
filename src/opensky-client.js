@@ -18,7 +18,21 @@ let rateLimitedUntil = 0;
 // OAuth2 token cache
 let accessToken = null;
 let tokenExpiresAt = 0;
+async getAirportInfo(icao) {
+  if (!icao) return null;
 
+  const url = `${this.baseUrl}/metadata/airport/icao/${icao}`;
+  const data = await this.curlGet(url);
+
+  if (!data) return null;
+
+  return {
+    icao: data.icao,
+    iata: data.iata,
+    city: data.city,
+    name: data.name
+  };
+}
 class OpenSkyClient {
   constructor() {
     this.baseUrl = config.opensky.baseUrl;
