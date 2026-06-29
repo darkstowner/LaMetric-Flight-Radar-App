@@ -74,6 +74,14 @@ class FlightMonitor {
       console.log(`✈️  ${nearby.length} aircraft within ${radiusMiles} miles:`);
 
       for (const plane of nearby) {
+        const altitude = OpenSkyClient.metersToFeet(
+          plane.baroAltitude || plane.geoAltitude
+        );
+
+      // Ignore aircraft above 5000 ft
+        if (altitude && altitude > 5000) {
+          continue;
+        }
         // Skip if recently notified
         if (!this.shouldNotify(plane.icao24)) {
           const callsign = plane.callsign || plane.icao24;
