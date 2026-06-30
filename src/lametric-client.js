@@ -4,6 +4,16 @@
  * Pushes notifications directly to LaMetric device on local network.
  * Uses curl for reliable local network access (bypasses WARP/VPN issues).
  */
+const { execSync } = require('child_process');
+const config = require('./config');
+const { getAirport } = require('./airports');
+
+// LaMetric icon IDs — these are placeholders, swap for real IDs from
+// https://developer.lametric.com/icons (search "departure" / "arrival")
+const ICON_AIRCRAFT = '2933';        // existing generic aircraft icon
+const ICON_DEPARTURE_AMS = '8979';   // TODO: replace with your chosen icon ID
+const ICON_ARRIVAL_AMS = '8980';     // TODO: replace with your chosen icon ID
+const AMS_IATA = 'AMS';
 
 const { execSync } = require('child_process');
 const config = require('./config');
@@ -96,54 +106,57 @@ class LaMetricClient {
    * @param {number} [flight.distance] - Distance in miles
    */
 pushFlightNotification(flight) {
-  const callsign = flight.callsign || 'Aircraft';
-  const altitudeFt = flight.altitude || 0;
+    const callsign = flight.callsign || 'Aircraft';
 
-  let altText;
-  if (altitudeFt >= 10000) {
-    altText = `${(altitudeFt / 1000).toFixed(0)}k`;
-  } else if (altitudeFt > 0) {
-    altText = `${altitudeFt.toLocaleString()}ft`;
-  } else {
-    altText = 'Ground';
+    const origin = flight.originIcao ? getAirport(flight.originIcao) : null;
+    const destination = flight.destinationIcao ? getAirport(flight.destinationIcao) : null;
+
+    // Icon selection: highlight AMS departures/arrivals, default for everything else
+    let icon = ICON_AIRCRAFT;
+    if (origin && origin.iata === AMS_IATA) {
+      icon = ICON_DEPARTURE_AMS;
+    } else if (destination && destination.iata === AMS_IATA) {
+      icon = ICON_ARRIVAL_AMS;
+    }
+
+    const frames = [];
+
+    // Line 1: Callsign (e.g. "BA446")
+    frames.push({ icon, text: callsign });
+
+    // Line 2: Route as IATA-IATA (e.g. "DUB-AMS"). Falls back to ICAO
+    // automatically via getAirport() when an airport isn't in the database.
+    if (origin && destination) {
+      frames.push({ icon, text: `${origin.iata}-${destination.iata}` });
+    }
+
+    // Line 3: City of the "other" airport relative to AMS — omitted entirely
+    // if unknown, never shows the word "Unknown"
+    let cityLine = null;
+    if (origin && destination) {
+      cityLine = origin.iata === AMS_IATA ? destination.city : origin.city;
+    } else if (origin) {
+      cityLine = origin.city;
+    } else if (destination) {
+      cityLine = destination.city;
+    }
+    if (cityLine) {
+      frames.push({ icon, text: cityLine });
+    }
+
+    const payload = {
+      priority: 'info',
+      icon_type: 'none',
+      lifetime: 12000,
+      model: {
+        cycles: 2,
+        frames,
+        sound: { category: 'notifications', id: 'notification' },
+      },
+    };
+
+    return this.pushRawNotification(payload);
   }
-
-  const frames = [];
-
-  // Frame 1: Airline name (e.g. "Aer Lingus")
-  if (flight.airline) {
-    frames.push({ icon: '2933', text: flight.airline });
-  }
-
-  // Frame 2: Callsign + aircraft type (e.g. "EIN123 A320")
-  const callsignText = flight.typecode
-    ? `${callsign} ${flight.typecode}`
-    : callsign;
-  frames.push({ icon: '2933', text: callsignText });
-
-  // Frame 3: Route (e.g. "DUB > AMS")
-  if (flight.origin && flight.destination) {
-    frames.push({ icon: '67948', text: `${flight.origin}` });
-  }
-
-  // Frame 4: Altitude + distance (e.g. "35k 2.3mi")
-  const detail = [altText];
-  if (flight.distance) detail.push(`${flight.distance.toFixed(1)}mi`);
-  frames.push({ icon: '2933', text: detail.join(' ') });
-
-  const payload = {
-    priority: 'info',
-    icon_type: 'none',
-    lifetime: 12000,
-    model: {
-      cycles: 2,
-      frames,
-      sound: { category: 'notifications', id: 'notification' },
-    },
-  };
-
-  return this.pushRawNotification(payload);
-}
 
   /**
    * Dismiss all notifications and return to clock
