@@ -107,7 +107,20 @@ const MAX_NOTIFY_ALTITUDE_FT = 5000;
         console.log(`   - ${callsign}${typeInfo}: ${altitude ? altitude.toLocaleString() + ' ft' : 'ground'}, ${distance.toFixed(1)} mi`);
 
         // Look up the route (origin/destination ICAO codes) and notify
-        const route = await this.opensky.getRouteByIcao24(plane.icao24);
+// OpenSky only knows the destination after landing, so for
+        // anything still airborne, fill in whatever's missing using the
+        // scheduled route by callsign.
+        let route = await this.opensky.getRouteByIcao24(plane.icao24);
+
+        if (!route?.originIcao || !route?.destinationIcao) {
+          const scheduled = await this.opensky.getScheduledRouteByCallsign(callsignRaw);
+          if (scheduled) {
+            route = {
+              originIcao: route?.originIcao || scheduled.originIcao,
+              destinationIcao: route?.destinationIcao || scheduled.destinationIcao,
+            };
+          }
+        }
 
         this.lametric.pushFlightNotification({
           callsign,
