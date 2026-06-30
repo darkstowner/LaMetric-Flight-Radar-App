@@ -73,19 +73,22 @@ class FlightMonitor {
 
       console.log(`✈️  ${nearby.length} aircraft within ${radiusMiles} miles:`);
 
-      for (const plane of nearby) {
-        const altitude = OpenSkyClient.metersToFeet(
-          plane.baroAltitude || plane.geoAltitude
-        );
+const MAX_NOTIFY_ALTITUDE_FT = 5000;
 
-      // Ignore aircraft above 5000 ft
-        if (altitude && altitude > 5000) {
+      for (const plane of nearby) {
+        const callsignRaw = plane.callsign || plane.icao24;
+        const altitude = OpenSkyClient.metersToFeet(plane.baroAltitude || plane.geoAltitude);
+
+        // Altitude filter: only notify for aircraft below 5,000 ft
+        // (climbing out of / descending into a nearby airport)
+        if (altitude !== null && altitude > MAX_NOTIFY_ALTITUDE_FT) {
+          console.log(`   - ${callsignRaw}: (skipped - above ${MAX_NOTIFY_ALTITUDE_FT.toLocaleString()}ft: ${altitude.toLocaleString()}ft)`);
           continue;
         }
+
         // Skip if recently notified
         if (!this.shouldNotify(plane.icao24)) {
-          const callsign = plane.callsign || plane.icao24;
-          console.log(`   - ${callsign}: (skipped - recently notified)`);
+          console.log(`   - ${callsignRaw}: (skipped - recently notified)`);
           continue;
         }
 
@@ -103,16 +106,14 @@ class FlightMonitor {
         const typeInfo = typecode ? ` (${typecode})` : '';
         console.log(`   - ${callsign}${typeInfo}: ${altitude ? altitude.toLocaleString() + ' ft' : 'ground'}, ${distance.toFixed(1)} mi`);
 
-        // Send notification to LaMetric
-const route = await this.opensky.getRouteByIcao24(plane.icao24);
+        // Look up the route (origin/destination ICAO codes) and notify
+        const route = await this.opensky.getRouteByIcao24(plane.icao24);
 
-this.lametric.pushFlightNotification({
-  callsign,
-  typecode,
-  origin: route?.origin || null,
-  destination: route?.destination || null,
-  airline: route?.airline || null,        // ← add this
-});
+        this.lametric.pushFlightNotification({
+          callsign,
+          originIcao: route?.originIcao || null,
+          destinationIcao: route?.destinationIcao || null,
+        });
 
         this.markNotified(plane.icao24);
 
