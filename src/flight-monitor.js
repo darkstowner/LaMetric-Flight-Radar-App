@@ -110,16 +110,20 @@ const MAX_NOTIFY_ALTITUDE_FT = 5000;
 // OpenSky only knows the destination after landing, so for
         // anything still airborne, fill in whatever's missing using the
         // scheduled route by callsign.
+// Look up the route. OpenSky's actual-track data is only complete
+        // once a flight has landed, so it's often missing a field for
+        // anything still airborne. Rather than splice individual fields
+        // from two different flight records together — which can pair an
+        // origin from one flight with a destination from an unrelated
+        // one — use whichever source is fully populated as a whole,
+        // preferring the more authoritative actual-track data when it's
+        // complete.
         let route = await this.opensky.getRouteByIcao24(plane.icao24);
+        const trackComplete = !!(route?.originIcao && route?.destinationIcao);
 
-        if (!route?.originIcao || !route?.destinationIcao) {
+        if (!trackComplete) {
           const scheduled = await this.opensky.getScheduledRouteByCallsign(callsignRaw);
-          if (scheduled) {
-            route = {
-              originIcao: route?.originIcao || scheduled.originIcao,
-              destinationIcao: route?.destinationIcao || scheduled.destinationIcao,
-            };
-          }
+          route = (scheduled?.originIcao && scheduled?.destinationIcao) ? scheduled : null;
         }
 
         this.lametric.pushFlightNotification({
