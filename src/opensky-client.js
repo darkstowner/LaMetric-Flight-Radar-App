@@ -297,9 +297,8 @@ class OpenSkyClient {
   if (Array.isArray(data) && data.length > 0) {
     const flight = data[data.length - 1]; // most recent entry for this aircraft
     return {
-      origin:      flight.estDepartureAirport || null,  // e.g. "EIDW"
-      destination: flight.estArrivalAirport   || null,  // e.g. "EHAM"
-      airline:     flight.callsign?.slice(0, 3) || null, // ICAO airline prefix
+      originIcao:      flight.estDepartureAirport || null,  // e.g. "EIDW"
+      destinationIcao: flight.estArrivalAirport   || null,  // e.g. "EHAM"
     };
   }
   return null;
