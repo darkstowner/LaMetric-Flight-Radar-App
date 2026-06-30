@@ -11,12 +11,9 @@ const { getAirport } = require('./airports');
 // LaMetric icon IDs — these are placeholders, swap for real IDs from
 // https://developer.lametric.com/icons (search "departure" / "arrival")
 const ICON_AIRCRAFT = '2933';        // existing generic aircraft icon
-const ICON_DEPARTURE_AMS = '72518';   // TODO: replace with your chosen icon ID
-const ICON_ARRIVAL_AMS = '72520';     // TODO: replace with your chosen icon ID
+const ICON_DEPARTURE_AMS = '72518';  // TODO: replace with your chosen icon ID
+const ICON_ARRIVAL_AMS = '72520';    // TODO: replace with your chosen icon ID
 const AMS_IATA = 'AMS';
-
-const { execSync } = require('child_process');
-const config = require('./config');
 
 class LaMetricClient {
   constructor() {
