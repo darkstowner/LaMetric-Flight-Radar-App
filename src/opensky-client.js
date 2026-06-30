@@ -286,8 +286,39 @@ class OpenSkyClient {
       destinationIcao: flight.estArrivalAirport   || null,  // e.g. "EHAM"
     };
   }
-  return null;
+return null;
 }
+
+  /**
+   * Fallback route lookup using callsign rather than actual track data.
+   * getRouteByIcao24() only knows the destination once a flight has
+   * landed — for aircraft still airborne (always true for anything this
+   * app's altitude filter catches on approach) estArrivalAirport is null.
+   * adsbdb.com maps a callsign to its scheduled route instead, which is
+   * known immediately, before landing.
+   */
+  async getScheduledRouteByCallsign(callsign) {
+    if (!callsign) return null;
+
+    const curlCmd = this.getCurlCmd();
+    const url = `https://api.adsbdb.com/v0/callsign/${callsign.trim()}`;
+    const cmd = `${curlCmd} -s "${url}"`;
+
+    try {
+      const result = execSync(cmd, { timeout: 10000, encoding: 'utf8', shell: true });
+      const route = JSON.parse(result)?.response?.flightroute;
+      if (route) {
+        return {
+          originIcao: route.origin?.icao_code || null,
+          destinationIcao: route.destination?.icao_code || null,
+        };
+      }
+    } catch (e) {
+      // Best-effort; route just won't display if this also fails
+    }
+    return null;
+  }
+
   async enrichWithMetadata(aircraft) {
     const metadata = await this.getAircraftMetadata(aircraft.icao24);
 
