@@ -105,8 +105,16 @@ class LaMetricClient {
 pushFlightNotification(flight) {
     const callsign = flight.callsign || 'Aircraft';
 
-    const origin = flight.originIcao ? getAirport(flight.originIcao) : null;
-    const destination = flight.destinationIcao ? getAirport(flight.destinationIcao) : null;
+const origin = flight.originIcao ? getAirport(flight.originIcao) : null;
+    let destination = flight.destinationIcao ? getAirport(flight.destinationIcao) : null;
+
+    // Defensive: OpenSky occasionally returns the same airport for both
+    // origin and destination on a flight that just took off (incomplete
+    // track data). Treat that as "destination unknown" rather than show
+    // a bogus route like "NTE-NTE".
+    if (origin && destination && origin.iata === destination.iata) {
+      destination = null;
+    }
 
     // Icon selection: highlight AMS departures/arrivals, default for everything else
     let icon = ICON_AIRCRAFT;
